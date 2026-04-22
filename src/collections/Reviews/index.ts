@@ -13,7 +13,7 @@ export const Reviews: CollectionConfig = {
           { status: { equals: 'approved' } },
           { publishedOnFrontend: { equals: true } },
         ],
-      }
+      } as const  // ✅ Fixes TypeScript type error
     },
     update: authenticated,
   },
