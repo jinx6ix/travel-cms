@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import type { Where } from 'payload'  // ← Import the Where type
 
 export const metadata: Metadata = {
   title: 'East Africa Safari Tours & Holiday Packages | Safari Trails Africa',
@@ -43,26 +44,37 @@ export default async function ToursPage({
   const params = await searchParams
   const payload = await getPayload({ config })
 
-  const whereClause: Record<string, unknown> = { _status: { equals: 'published' } }
-  if (params.tourType) whereClause.tourType = { equals: params.tourType }
-  if (params.country) whereClause.countries = { contains: params.country }
+  // ✅ Build where clause with explicit Where type
+  const whereClause: Where = { _status: { equals: 'published' } }
+
+  if (params.tourType) {
+    whereClause.tourType = { equals: params.tourType }
+  }
+  if (params.country) {
+    whereClause.countries = { contains: params.country }
+  }
   if (params.duration) {
     const [min, max] = params.duration.split('-').map(Number)
-    if (min) whereClause['duration'] = { greater_than_equal: min, ...(max ? { less_than_equal: max } : {}) }
+    const durationFilter: { greater_than_equal?: number; less_than_equal?: number } = {}
+    if (min) durationFilter.greater_than_equal = min
+    if (max) durationFilter.less_than_equal = max
+    whereClause.duration = durationFilter
   }
-  if (params.search) whereClause['title'] = { like: params.search }
+  if (params.search) {
+    whereClause.title = { like: params.search }
+  }
 
   const tours = await payload.find({
     collection: 'tours',
-    where: whereClause,
+    where: whereClause,        // ✅ Now matches Where type
     sort: '-isFeatured,-isPopular,-publishedAt',
     limit: 60,
     depth: 1,
   })
 
+  // ... rest of the component remains exactly the same
   return (
     <main style={{ fontFamily: 'system-ui, -apple-system, sans-serif', minHeight: '100vh' }}>
-
       {/* Hero */}
       <section style={{
         background: 'linear-gradient(135deg, #1a3a1a 0%, #2d5a27 100%)',
@@ -91,15 +103,15 @@ export default async function ToursPage({
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <form method="GET" action="/tours" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
             <input name="search" defaultValue={params.search || ''} placeholder="Search tours..." style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd', background: 'white', fontSize: 14, minWidth: 160 }} />
-            <select name="tourType" defaultValue={params.tourType || ''} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd', background: 'white', fontSize: 14 }}>
+            <select title='Tour Type' name="tourType" defaultValue={params.tourType || ''} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd', background: 'white', fontSize: 14 }}>
               <option value="">All Tour Types</option>
               {Object.entries(TOUR_TYPE_LABELS).map(([val, label]) => <option key={val} value={val}>{label}</option>)}
             </select>
-            <select name="country" defaultValue={params.country || ''} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd', background: 'white', fontSize: 14 }}>
+            <select title='Country' name="country" defaultValue={params.country || ''} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd', background: 'white', fontSize: 14 }}>
               <option value="">All Countries</option>
               {[['kenya','🇰🇪 Kenya'],['tanzania','🇹🇿 Tanzania'],['uganda','🇺🇬 Uganda'],['rwanda','🇷🇼 Rwanda'],['ethiopia','🇪🇹 Ethiopia'],['zanzibar','🏝️ Zanzibar']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
             </select>
-            <select name="duration" defaultValue={params.duration || ''} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd', background: 'white', fontSize: 14 }}>
+            <select title='Duration' name="duration" defaultValue={params.duration || ''} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd', background: 'white', fontSize: 14 }}>
               <option value="">Any Duration</option>
               <option value="1-4">1–4 Days</option>
               <option value="5-7">5–7 Days</option>
