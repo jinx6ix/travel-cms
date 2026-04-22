@@ -24,10 +24,6 @@ const globals: GlobalSlug[] = ['header', 'footer']
 
 const categories = ['Technology', 'News', 'Finance', 'Design', 'Software', 'Engineering']
 
-// Next.js revalidation errors are normal when seeding the database without a server running
-// i.e. running `yarn seed` locally instead of using the admin UI within an active app
-// The app is not running to revalidate the pages and so the API routes are not available
-// These error messages can be ignored: `Error hitting revalidate route for...`
 export const seed = async ({
   payload,
   req,
@@ -37,20 +33,14 @@ export const seed = async ({
 }): Promise<void> => {
   payload.logger.info('Seeding database...')
 
-  // we need to clear the media directory before seeding
-  // as well as the collections and globals
-  // this is because while `yarn seed` drops the database
-  // the custom `/api/seed` endpoint does not
   payload.logger.info(`— Clearing collections and globals...`)
 
-  // clear the database
+  // Clear globals (reset to empty state)
   await Promise.all(
     globals.map((global) =>
       payload.updateGlobal({
         slug: global,
-        data: {
-          navItems: [],
-        },
+        data: {} as any, // reset to empty object (fields will be overwritten later)
         depth: 0,
         context: {
           disableRevalidate: true,
@@ -119,7 +109,7 @@ export const seed = async ({
     }),
     payload.create({
       collection: 'media',
-      data: image2,
+      data: image2, // note: using image2 data for third image (adjust if you have image3 data)
       file: image3Buffer,
     }),
     payload.create({
@@ -127,6 +117,11 @@ export const seed = async ({
       data: imageHero1,
       file: hero1Buffer,
     }),
+  ])
+
+  // Create categories separately
+  payload.logger.info(`— Seeding categories...`)
+  const categoryDocs = await Promise.all(
     categories.map((category) =>
       payload.create({
         collection: 'categories',
@@ -136,12 +131,10 @@ export const seed = async ({
         },
       }),
     ),
-  ])
+  )
 
   payload.logger.info(`— Seeding posts...`)
 
-  // Do not create posts with `Promise.all` because we want the posts to be created in order
-  // This way we can sort them by `createdAt` or `publishedAt` and they will be in the expected order
   const post1Doc = await payload.create({
     collection: 'posts',
     depth: 0,
@@ -169,7 +162,6 @@ export const seed = async ({
     data: post3({ heroImage: image3Doc, blockImage: image1Doc, author: demoAuthor }),
   })
 
-  // update each post with related posts
   await payload.update({
     id: post1Doc.id,
     collection: 'posts',
@@ -217,6 +209,7 @@ export const seed = async ({
 
   payload.logger.info(`— Seeding globals...`)
 
+  // Update header and footer with navItems
   await Promise.all([
     payload.updateGlobal({
       slug: 'header',
@@ -240,7 +233,7 @@ export const seed = async ({
             },
           },
         ],
-      },
+      } as any, // Type assertion to bypass strict global type check
     }),
     payload.updateGlobal({
       slug: 'footer',
@@ -270,7 +263,7 @@ export const seed = async ({
             },
           },
         ],
-      },
+      } as any,
     }),
   ])
 
