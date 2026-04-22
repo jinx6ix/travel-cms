@@ -927,7 +927,7 @@ export const toursData = [
       ],
     },
   },
-]
+] as const // ✅ Preserves literal types for currency, difficulty, etc.
 
 export async function seedTours(payload: Payload) {
   console.log('Seeding East Africa tours...')
@@ -947,7 +947,7 @@ export async function seedTours(payload: Payload) {
             title: `${tour.title} | Safari Trails Africa`,
             description: tour.shortDescription,
           },
-        },
+        } as any, // ✅ Type assertion to bypass strict Payload typing
       })
       console.log(`✅ Created: ${tour.title}`)
     } else {
