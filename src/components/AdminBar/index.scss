@@ -1,0 +1,9 @@
+@import '../../../node_modules/@payloadcms/ui/dist/scss/vars';
+@import '../../../node_modules/@payloadcms/ui/dist/scss/queries';
+
+
+.admin-bar {
+  @include small-break {
+    display: none;
+  }
+}
